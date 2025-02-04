@@ -1,8 +1,10 @@
 ### Calculation of principal components
+Bash
 ```
 ./plink --bfile Lobster1MB --pca 10 --out ACP_Lobster --allow-extra-chr
 ```
 ### Load libraries 
+R
 ```
 library(ggplot2)
 ```
