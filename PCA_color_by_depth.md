@@ -1,21 +1,28 @@
-# Exécuter l'ACP avec PLINK
-
+### Run PCA with PLINK
+Bash
+```
 ./plink --bfile Lobster1MB --pca 10 --out ACP_Lobster --allow-extra-chr
-
-# Charger les librairies
+```
+### Load librairies
+R
+```
 library(ggplot2)
-
-# Charger les résultats de l'ACP
+```
+### Load PCA results
+```
 pca_data <- read.table("ACP_Lobster.eigenvec", header=FALSE)
 colnames(pca_data) <- c("FID", "IID", "PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10")
-
-# Charger le fichier de profondeur
+```
+### Load depth file
+```
 depth_data <- read.table("Lobster1MB.idepth", header=TRUE)
-
-# Fusionner les données ACP et profondeur par l'ID du sample
+```
+### Merge ACP and depth data by sample ID
+```
 merged_data <- merge(pca_data, depth_data, by.x="IID", by.y="INDV")
-
-# Tracer PC1 vs PC2 avec une coloration par profondeur
+```
+### Plot PC1 vs PC2 with depth staining
+```
 ggplot(merged_data, aes(x=PC1, y=PC2, color=MEAN_DEPTH)) +
   geom_point(size=3) +
   scale_color_gradientn(colors=c("blue", "cyan", "yellow", "red"), 
@@ -26,3 +33,4 @@ ggplot(merged_data, aes(x=PC1, y=PC2, color=MEAN_DEPTH)) +
   ylab("PC2") +
   ggtitle("PCA of Lobster colored by sequencing depth") +
   labs(color="Sequemcing depth")
+```
