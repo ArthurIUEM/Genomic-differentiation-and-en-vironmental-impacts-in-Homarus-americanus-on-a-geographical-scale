@@ -5,6 +5,8 @@ awk '{ $2 = NR; print }' Lobster1MB.bim > Lobster1MB2.bim
 # Filtrer le fichier .bim en Bash
 awk '$1 == "NW_024712526.1"' Lobster1MB2.bim > Lobster1MB_NW_024712526.1.bim
 
+./plink --bfile Lobster1MB --extract Lobster1MB_NW_024712526.1 --make-bed --out Lobster1MB_chrNW_024712526.1 --allow-extra-chr 
+
 # Faire l'ACP pour le chromosome voulu
 ./plink --bfile Lobster1MB_chrNW_024712526.1 --pca 10 --out ACP_chr_NW_024712526.1 --allow-extra-chr 
 
