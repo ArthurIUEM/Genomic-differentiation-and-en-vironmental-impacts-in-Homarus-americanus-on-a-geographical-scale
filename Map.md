@@ -1,3 +1,5 @@
+# Map
+
 ### Install the necessary packages
 ```
 if (!requireNamespace("rnaturalearth", quietly = TRUE)) install.packages("rnaturalearth")
