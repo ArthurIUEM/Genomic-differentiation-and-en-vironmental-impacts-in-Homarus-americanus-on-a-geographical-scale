@@ -1,3 +1,5 @@
+# PCA colored by sequencing depth
+
 ### Run PCA with PLINK
 Bash
 ```
