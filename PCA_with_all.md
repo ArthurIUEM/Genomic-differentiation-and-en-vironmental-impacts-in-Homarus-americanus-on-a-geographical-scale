@@ -1,3 +1,5 @@
+# PCA with all
+
 ### Calculation of principal components
 Bash
 ```
