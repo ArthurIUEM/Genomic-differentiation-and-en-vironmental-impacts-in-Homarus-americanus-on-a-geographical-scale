@@ -41,7 +41,7 @@ ggplot(pca_merged, aes(x=PC1, y=PC2, color=NAFO)) +
   theme_minimal() +
   xlab("PC1") + 
   ylab("PC2") +
-  ggtitle("Lobster PCA (PC1 vs PC2, colored by NAFO zone)") +
+  ggtitle("Lobster PCA colored by NAFO zone (chromosome NW_024712526.1)") +
   scale_color_brewer(palette="Set1")
 ````
 ### For the chromosome NW_024713129.1
