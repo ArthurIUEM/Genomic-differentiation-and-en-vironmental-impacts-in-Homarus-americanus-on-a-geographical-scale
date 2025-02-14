@@ -45,7 +45,9 @@ Outliers <- FSTfile %>%
 ````
 
 ### Plotting outliers
+````
 ggplot() +
   geom_point(data = Outliers, aes(x = POS, y = FST)) +
   facet_wrap(~CHR, scales = "free_x") +
   theme_minimal()
+````
