@@ -57,3 +57,45 @@ ggplot(admix_long, aes(x = Individu, y = value, fill = variable)) +
        x = "Individu",
        y = "Proportion d'ascendance") +
   theme(axis.text.x = element_blank(), legend.title = element_blank())
+
+
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(readr)
+
+# Charger le fichier .fam mis à jour (avec les noms des populations et la latitude)
+fam <- read_delim("Lobster1MB_updated.fam", delim = " ", col_names = FALSE)
+
+# Renommer les colonnes pour faciliter l'utilisation
+colnames(fam) <- c("FID", "IID", "Père", "Mère", "Sexe", "Phénotype", "Latitude", "Longitude", "Nom_Pop")
+
+# Fonction pour charger et formater les fichiers Q
+load_admixture_data <- function(k) {
+  Q_file <- paste0("subset_127968_SNPs.", k, ".Q")
+  df <- read_delim(Q_file, delim = " ", col_names = FALSE, col_types = cols(.default = "d"))
+  
+  # Ajouter les colonnes FID, Nom_Pop et Latitude à chaque fichier .Q
+  df <- df %>%
+    mutate(FID = fam$FID, Nom_Pop = fam$Nom_Pop, Latitude = fam$Latitude, K = k) %>%
+    pivot_longer(cols = starts_with("X"), names_to = "Cluster", values_to = "Proportion") %>%
+    mutate(Cluster = as.numeric(gsub("X", "", Cluster)) + 1) # Ajuster les numéros de cluster
+  
+  return(df)
+}
+# Charger les données pour tous les K
+K_values <- 2:10
+admixture_data <- bind_rows(lapply(K_values, load_admixture_data))
+
+# Trier les individus par latitude pour un affichage plus clair
+admixture_data <- admixture_data %>%
+  arrange(K, Latitude, FID)
+
+# Créer le graphique en barres empilées
+ggplot(admixture_data, aes(x = reorder(FID, Latitude), y = Proportion, fill = factor(Cluster))) +
+  geom_bar(stat = "identity") +
+  facet_wrap(~K, scales = "free_x") +  # Un graphique par K
+  theme_minimal() +
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank()) + # Cacher les noms des individus
+  labs(x = "Individus (triés par latitude)", y = "Proportion ancestrale", fill = "Cluster") +
+  scale_fill_brewer(palette = "Set3")
