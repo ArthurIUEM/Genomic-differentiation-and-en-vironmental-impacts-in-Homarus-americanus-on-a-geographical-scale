@@ -1,3 +1,20 @@
+# Appliquer K-means sur les données PCA (ou UMAP) avec 4 clusters
+set.seed(123)  # Pour la reproductibilité
+kmeans_result <- kmeans(acp[, c("UMAP1", "UMAP2")], centers=4)  # 4 clusters cette fois
+
+# Ajouter les résultats du clustering au DataFrame
+acp$Cluster_Kmeans <- as.factor(kmeans_result$cluster)
+
+# ---- Création du tableau binaire (0/1) pour chaque individu et cluster ----
+
+# Créer un tableau où chaque ligne représente un individu et chaque colonne un cluster
+cluster_matrix <- as.data.frame(model.matrix(~ Cluster_Kmeans - 1, data=acp))
+
+# Afficher le tableau
+head(cluster_matrix)
+
+# Sauvegarder ce tableau dans un fichier si besoin
+write.table(cluster_matrix, file="Cluster_Membership_Table.txt", quote=FALSE, row.names=FALSE, sep="\t")
 
 # Charger le fichier des assignations de clusters
 clusters <- read.table("Cluster_assignments.txt", header=TRUE, sep="\t")
