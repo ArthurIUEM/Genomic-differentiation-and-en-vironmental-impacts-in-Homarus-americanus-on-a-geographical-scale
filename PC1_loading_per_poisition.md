@@ -1,61 +1,49 @@
-# PC1 loading per SNPs poisition on chromosome
+# PC1 loading per position
 
-### Input variables
-````
-plink_prefix="Lobster1MB_chrNW_024712526.1"  # Prefix for PLINK files (.bed, .bim, .fam)
-output_prefix="ACP_chr_NW_024712526.1"       # Prefix for output files
-````
-### PCA execution with PLINK 2 
-````
+# Variables d'entrée
+plink_prefix="Lobster1MB_chrNW_024712526.1"  # Préfixe des fichiers PLINK (.bed, .bim, .fam)
+output_prefix="ACP_chr_NW_024712526.1"       # Préfixe des fichiers de sortie
+
+# Exécution de la PCA avec PLINK 2
 ./plink2 --bfile ${plink_prefix} \
        --pca biallelic-var-wts \
        --out ${output_prefix}
-````
-### Output check
-````
+
+# Vérification de la sortie
 if [ -f "${output_prefix}.eigenvec.var" ]; then
     echo "Fichier ${output_prefix}.eigenvec.var généré avec succès."
 else
     echo "Erreur : le fichier .eigenvec.var n'a pas été généré."
 fi
-````
-### Load ggplot2 and dplyr for data processing
-````
+
+# Chargement des bibliothèques ggplot2 et dplyr pour le traitement des données
 library(ggplot2)
 library(dplyr)
-````
-### Load SNP loadings from PCA
-````
+
+# Chargement des coefficients de chargement PCA à partir du fichier de sortie
 pca_loadings <- read.table("ACP_chr_NW_024712526.1.eigenvec.var", header=FALSE)
-````
-### Rename columns for clarity
-````
+
+# Renommage des colonnes pour une meilleure lisibilité
 colnames(pca_loadings) <- c("Chromosome", "SNP", "A1", "A2", "PC1_Loading", "PC2_Loading", "PC3_Loading", 
                             "PC4_Loading", "PC5_Loading", "PC6_Loading", "PC7_Loading", 
                             "PC8_Loading", "PC9_Loading", "PC10_Loading")
-````
-### Upload BIM file
-````
+
+# Chargement du fichier BIM contenant les positions des SNPs
 bim_data <- read.table("Lobster1MB.bim", header=FALSE)
-````
-### Rename BIM file columns
-````
+
+# Renommage des colonnes du fichier BIM pour une meilleure compréhension
 colnames(bim_data) <- c("CHR", "SNP", "Genetic_Dist", "Position", "Allele1", "Allele2")
-````
-### Filter only the chromosome of interest
-````
+
+# Filtrage pour ne conserver que le chromosome d'intérêt
 bim_chr <- bim_data %>% filter(CHR == "NW_024712526.1")
-````
-### Merge PCA and BIM data to retrieve SNP positions
-````
+
+# Fusion des données PCA et BIM pour récupérer les positions des SNPs
 pca_pos <- merge(pca_loadings, bim_chr, by="SNP")
-````
-### Plot PC1_Loading (X) vs. Position on chromosome (Y)
-````
+
+# Visualisation de PC1_Loading en fonction de la position sur le chromosome
 ggplot(pca_pos, aes(x = Position, y = PC1_Loading)) +
   geom_point(alpha = 0.5, color = "blue") +
   theme_minimal() +
-  labs(title = "Distribution of SNPs on the chromosome NW_024712526.1",
-       x = "Position of SNPs on the chromosome",
+  labs(title = "Distribution des SNPs sur le chromosome NW_024712526.1",
+       x = "Position des SNPs sur le chromosome",
        y = "PC1 Loading")
-````
