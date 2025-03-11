@@ -66,3 +66,46 @@ final_map <- ggdraw() +
 
 # Affichage de la carte finale
 print(final_map)
+
+
+# Map colored by cluster
+
+# Charger les bibliothèques nécessaires
+library(ggplot2)
+library(dplyr)
+library(maps)
+
+# Charger les données ACP et les clusters
+acp <- read.table("ACP_Lobster.eigenvec", header=FALSE)
+colnames(acp) <- c("FID", "IID", paste0("PC", 1:(ncol(acp)-2)))
+
+# Charger le fichier .fam pour récupérer les coordonnées
+fam <- read.table("Lobster1MB.fam", header=FALSE)
+colnames(fam) <- c("FID", "IID", "PID", "MID", "SEX", "OK", "LATITUDE", "LONGITUDE")
+
+# Charger le fichier de clusters
+clusters <- read.table("Cluster_Assignment.txt", header=TRUE)
+
+# Ajouter les noms des individus dans le fichier de clusters
+temp_fam <- fam %>% select(FID)
+clusters <- cbind(temp_fam, clusters)
+
+# Créer une colonne pour identifier les clusters principaux
+detect_cluster <- function(row) which(row == 1)
+clusters$Cluster <- apply(clusters[, 2:5], 1, detect_cluster)
+
+# Fusionner les données pour inclure la latitude, la longitude et les clusters
+acp <- merge(acp, fam[, c("FID", "LATITUDE", "LONGITUDE")], by="FID", all.x=TRUE)
+acp <- merge(acp, clusters[, c("FID", "Cluster")], by="FID", all.x=TRUE)
+
+# Créer la carte colorée par cluster
+ggplot() +
+  borders("world", regions = "Canada", fill = "grey", colour = "grey") +
+  geom_point(data = acp, aes(x = LONGITUDE, y = LATITUDE, color = as.factor(Cluster)), size = 3) +
+  scale_color_brewer(palette = "Set1") +
+  coord_cartesian(xlim = c(-70, -50), ylim = c(40, 51)) + # Zoom sur la zone d'intérêt
+  theme_minimal() +
+  theme(panel.grid = element_blank(),
+        legend.title = element_text(size = 10)) +
+  labs(title = "Distribution géographique des clusters de homards américains",
+       x = "Longitude", y = "Latitude")
