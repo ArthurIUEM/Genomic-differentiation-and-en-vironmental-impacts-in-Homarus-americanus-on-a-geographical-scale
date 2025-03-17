@@ -1,4 +1,4 @@
-#!/bin/bash
+Genetic analysis
 
 # Définition des noms de fichiers
 BED_FILE="Lobster1MB.bed"
