@@ -10,7 +10,7 @@ awk 'NR==FNR {a[$1]=$3; next} {print $1, $2, a[$2]}' Cluster_Assigned1.txt Lobst
       --allow-no-sex \
       --out GWA_Cluster1
 
-awk 'NR==FNR {a[$1]=$3; next} {print $1, $2, a[$2]}' Cluster_Assigned2.txt Lobster1MB.fam > phenotype2.txt
+
 
 library(qqman)
 library(dplyr)
@@ -49,6 +49,8 @@ manhattan(gwa_plot_data, chr="CHR", bp="BP", p="P", col=c("blue", "orange"),
 
 
 Cluster 2
+awk 'NR==FNR {a[$1]=$3; next} {print $1, $2, a[$2]}' Cluster_Assigned2.txt Lobster1MB.fam > phenotype2.txt
+
 ./plink --bfile Lobster1MB \
       --pheno phenotype2.txt \
       --assoc \
