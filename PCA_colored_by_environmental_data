@@ -1,0 +1,245 @@
+# Charger les bibliothèques nécessaires
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+# ---------- 1. Charger les fichiers ----------
+
+
+# Profondeur de séquençage
+depth <- read.table("Lobster1MB.idepth", header=TRUE)
+if (!"FID" %in% colnames(depth)) {
+  colnames(depth)[1] <- "FID"
+}
+
+# Charger les résultats ACP
+acp <- read.table("ACP_Lobster.eigenvec", header=FALSE)
+acp <- as.data.frame(acp)  # ✅ conversion explicite
+colnames(acp) <- c("FID", "IID", paste0("PC", 1:(ncol(acp)-2)))
+
+# Charger la profondeur de séquençage
+depth <- read.table("Lobster1MB.idepth", header=TRUE)
+if (!"FID" %in% colnames(depth)) {
+  colnames(depth)[1] <- "FID"
+}
+
+# Fusion après avoir supprimé IID
+acp <- dplyr::select(acp, -IID) %>% merge(depth, by="FID")
+
+
+# Vérification profondeur
+if (!"MEAN_DEPTH" %in% colnames(acp)) {
+  stop("Erreur : La colonne MEAN_DEPTH est absente. Vérifiez le fichier Lobster1MB.idepth.")
+}
+
+# ---------- 2. Filtrer les 5% extrêmes pour chaque PC ----------
+for (i in 1:9) {
+  upper_pc <- quantile(acp[[paste0("PC", i)]], 0.95)
+  acp <- acp %>% filter(acp[[paste0("PC", i)]] <= upper_pc)
+}
+
+# ---------- 3. Ajouter la latitude ----------
+fam <- read.table("Lobster1MB.fam", header=FALSE)
+if (ncol(fam) < 6) {
+  stop("Erreur : Le fichier .fam ne contient pas suffisamment de colonnes.")
+}
+colnames(fam) <- c("FID", "IID", "PID", "MID", "SEX", "OK", "LATITUDE", "Longitude", "NAFO_zone")
+acp <- merge(acp, fam[, c("FID", "LATITUDE")], by="FID", all.x=TRUE)
+
+# ---------- 4. Ajouter la température ----------
+env <- read.table("Lobster1MB_env.tsv", header=TRUE, sep="\t")
+colnames(env) <- c("FID", "IID", "LATITUDE", "LONGITUDE", "Bathymetrie_moy", "Temperature_max", "Temperature_moy", "Temperature_min", "Dissolution_max", "Dissolution_moy", "Dissolution_min", "Salinity_max", "Salinity_moy", "Salinity_min")
+if (!"FID" %in% colnames(env) | !"Temperature_max" %in% colnames(env)) {
+  stop("Erreur : Vérifiez que les colonnes 'FID' et 'TEMPERATURE' existent dans Lobster1MB_env.tsv.")
+}
+acp <- merge(acp, env[, c("FID", "Bathymetrie_moy", "Temperature_max", "Temperature_moy", "Temperature_min", "Dissolution_max", "Dissolution_moy", "Dissolution_min", "Salinity_max", "Salinity_moy", "Salinity_min")], by="FID", all.x=TRUE)
+
+# ---------- 5. Sauvegarder les données combinées ----------
+write.table(acp, file="Filtered_ACP_Lobster_with_Lat_Env.txt", quote=FALSE, row.names=FALSE, sep="\t")
+
+# ---------- 6. Graphiques colorés par LATITUDE ----------
+color_palette <- c("blue", "red", "yellow")
+plot_list_lat <- list()
+for (i in 1:9) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="LATITUDE")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Latitude"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Latitude")
+  plot_list_lat[[i]] <- p
+}
+# Afficher les graphiques par latitude
+do.call(grid.arrange, c(plot_list_lat, ncol=3))
+
+# ---------- 7. Graphiques colorés par Temprature max ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Temperature_max")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Température max"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Température max (°C)")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
+
+# ---------- 8. Graphiques colorés par Temprature moy ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Temperature_moy")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Température moy"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Température moy (°C)")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
+
+# ---------- 7. Graphiques colorés par Temprature min ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Temperature_min")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Température min"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Température min (°C)")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
+
+# ---------- 7. Graphiques colorés par Bathymetrie moy ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Bathymetrie_moy")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Bqthymetrie moy"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Bathymetrie moy (m)")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
+
+# ---------- 7. Graphiques colorés par Dissolution max ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Dissolution_max")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Dissolution max"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Dissolution_max")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
+
+# ---------- 7. Graphiques colorés par Dissolution moy ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Dissolution_moy")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Dissolution moy"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Dissolution moy")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
+
+# ---------- 7. Graphiques colorés par Dissolution min ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Dissolution_min")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Dissolution min"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Dissolution min")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
+
+# ---------- 7. Graphiques colorés par Salinity max ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Salinity_max")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Salinity max"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Salinity max (PSU)")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
+
+# ---------- 7. Graphiques colorés par Salinity moy ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Salinity_moy")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Salinity moy"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Salinity moy (PSU)")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
+
+# ---------- 7. Graphiques colorés par Salinity min ----------
+plot_list_temp <- list()
+for (i in 1:3) {
+  p <- ggplot(acp, aes_string(x=paste0("PC", i), y=paste0("PC", i+1), color="Salinity_min")) +
+    geom_point(size=2) +
+    scale_color_gradientn(colors = color_palette) +
+    coord_fixed() +  # Fixer le ratio des axes
+    theme_minimal() +
+    labs(title=paste0("PC", i, " vs PC", i+1, " - Salinity min"),
+         x=paste0("PC", i), 
+         y=paste0("PC", i+1),
+         color="Salinity min (°C)")
+  plot_list_temp[[i]] <- p
+}
+# Afficher les graphiques par température
+do.call(grid.arrange, c(plot_list_temp, ncol=3))
