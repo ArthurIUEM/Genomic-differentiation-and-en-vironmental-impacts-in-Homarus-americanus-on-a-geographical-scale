@@ -1,0 +1,46 @@
+library(tidyverse)
+library(data.table)
+library(sdmpredictors)
+library(raster)
+
+# Charger les données fam (avec les colonnes de latitude et longitude)
+fam <- read.table("Lobster1MB.fam", header = FALSE)
+
+# Nommer les colonnes FID, IID, PID, MID, SEX, PHENO, Latitude, Longitude
+colnames(fam) <- c("FID", "IID", "PID", "MID", "SEX", "PHENO", "Latitude", "Longitude", "NAFO_zone")
+
+# Extraire les colonnes FID, IID, Latitude, et Longitude
+Lobster_data_env <- fam[, c("FID", "IID", "Latitude", "Longitude")]
+
+# Sauvegarder le résultat dans un fichier
+write.table(Lobster_data_env, "Lobster1MB.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+wd = "~/Documents/Arthur/plink"
+subproj = "Lobster1MB"
+setwd(paste0(wd, subproj))
+data_path = "~/Documents/Arthur/plink"
+
+Geo <- data.frame(fread(paste0(subproj, ".txt"))) 
+
+#set this so downloads don't time out
+options(timeout = max(1000, getOption("timeout")))
+
+#get bottom layers
+environment.bottom <- load_layers(c("BO2_tempmax_bdmean", 
+                                    "BO2_tempmean_bdmean", 
+                                    "BO2_tempmin_bdmean",
+                                    "BO2_dissoxmax_bdmean", 
+                                    "BO2_dissoxmean_bdmean", 
+                                    "BO2_dissoxmin_bdmean", 
+                                    "BO2_salinitymax_bdmean", 
+                                    "BO2_salinitymean_bdmean", 
+                                    "BO2_salinitymin_bdmean")) 
+#get bathymetry
+bathymetry <- load_layers("BO_bathymean")
+
+my.sites.environment <- data.frame(IID=Geo$IID, depth=extract(bathymetry,Geo[,3:4]), extract(environment.bottom, Geo[,3:4]))
+
+Env <- inner_join(Geo, my.sites.environment)
+
+write.table(Env, 
+            paste0(subproj, "_env.tsv"), col.names = T, row.names = F, quote = F, sep = "\t")
+
