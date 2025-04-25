@@ -1,0 +1,466 @@
+# Charger le fichier CSV contenant les SNPs à garder
+snps <- read.csv("SNPs_extraits_chr024713129.csv", header = TRUE)
+
+# Vérifier le nom de la colonne qui contient les IDs PLINK (ex: "SNP", "ID", etc.)
+head(snps)
+
+# Supposons que la colonne contenant les IDs s'appelle "SNP"
+write.table(snps$SNP, file = "keep_snps_chr024713129.txt",
+            quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+------------
+# Charger les résultats PCA
+pca <- read.table("chr024713129_selected_pca.eigenvec", header = FALSE)
+colnames(pca) <- c("FID", "IID", paste0("PC", 1:10))
+
+# Charger le fichier contenant les latitudes des individus
+fam <- fread("Lobster1MB.fam")
+colnames(fam) <- c("FID", "IID", "Father", "Mother", "Sex", "Phenotype", "Latitude", "Longitude", "NAFO Zone")
+
+# Vérifier que les colonnes d'identifiants sont compatibles
+# Exemple : si latitude_data contient une colonne "IID"
+merged <- merge(pca, latitude_data, by = "IID")  # ou by = c("FID", "IID") si nécessaire
+
+# Charger les bibliothèques
+library(ggplot2)
+
+# Palette personnalisée en dégradé continu
+color_palette <- c("red", "orange", "yellow", "green", "blue")
+
+# Plot avec gradient continu basé sur la latitude
+ggplot(merged, aes(x = PC1, y = PC2, color = Latitude)) +
+  geom_point(size = 2) +
+  scale_color_gradientn(colors = color_palette, name = "Latitude") +
+  theme_minimal() +
+  labs(title = "ACP - SNPs extraits sur chr 024713129", x = "PC1", y = "PC2")
+
+------------
+# Charger PCA
+pca <- read.table("chr24713129_filtered_pca.eigenvec", header = FALSE)
+colnames(pca) <- c("FID", "IID", paste0("PC", 1:10))
+
+# Charger les latitudes (remplace par ton fichier réel)
+latitude_data <- read.table("Lobster1MB.fam", header = TRUE)
+colnames(latitude_data) <- c("FID", "IID", "Father", "Mother", "Sex", "Phenotype", "Latitude", "Longitude", "NAFO Zone")
+
+# Fusionner sur l'identifiant (FID/IID)
+pca_lat <- merge(pca, latitude_data, by = "IID")  # ou by = c("FID", "IID") si besoin
+
+color_palette <- c("red", "orange", "yellow", "green", "blue")
+# Visualiser
+library(ggplot2)
+ggplot(pca_lat, aes(x = PC1, y = PC2, color = Latitude)) +
+  geom_point(size = 2) +
+  scale_color_viridis_c() +
+  theme_minimal() +
+  scale_color_gradientn(colors = color_palette)  + 
+  labs(title = "ACP - SNPs FST > 0.05 sur chr 024713129", color = "Latitude")
+------------
+## Charger les librairies
+library(data.table)
+library(ggplot2)
+
+## Charger les fichiers
+fst <- fread("lobster_fst.fst", header=TRUE)
+bim <- fread("Lobster_no_024712526.bim", header=FALSE)
+colnames(bim) <- c("CHR", "SNP", "CM", "BP", "A1", "A2")
+
+## Merge pour récupérer les positions
+fst_data <- merge(fst, bim[, .(SNP, BP)], by = "SNP")
+
+## Nettoyage
+fst_data[, CHR := as.factor(CHR)]
+fst_data[, CHR := as.numeric(as.character(CHR))]
+fst_data <- fst_data[!is.na(CHR)]
+
+## Ordre et position cumulée
+fst_data <- fst_data[order(CHR, BP)]
+chrom_cumlen <- fst_data[, .(maxBP = max(BP)), by = CHR]
+chrom_cumlen[, offset := cumsum(shift(maxBP, fill=0))]
+fst_data <- merge(fst_data, chrom_cumlen[, .(CHR, offset)], by = "CHR")
+fst_data[, pos_cum := BP + offset]
+
+## Position des étiquettes pour le plot général (optionnel)
+axis_df <- fst_data[, .(center = mean(pos_cum)), by = CHR]
+
+## Zoom sur le chromosome 24713129
+fst_zoom <- fst_data[CHR == 24713129]
+
+## Filtrer les SNPs avec FST > 0.05
+fst_high <- fst_zoom[FST > 0.05]
+
+## Sauvegarder le tableau filtré
+fwrite(fst_high, "SNPs_FST_sup_0.05_chr24713129.tsv", sep = "\t")
+
+## Plot zoomé
+ggplot(fst_zoom, aes(x = BP, y = FST)) +
+  geom_point(size = 0.6, color = "grey60") +
+  geom_point(data = fst_high, aes(x = BP, y = FST), color = "red", size = 0.8) +
+  labs(x = "Position (bp)", y = "FST", title = "Zoom sur le chromosome 24713129") +
+  theme_bw() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+--------------------
+## Charger les librairies
+
+library(data.table)
+library(ggplot2)
+
+## Charger les fichiers
+
+fst <- fread("lobster_fst.fst", header=TRUE)
+bim <- fread("Lobster_no_024712526.bim", header=FALSE)
+colnames(bim) <- c("CHR", "SNP", "CM", "BP", "A1", "A2")
+
+## Merge pour récupérer les positions
+
+fst_data <- merge(fst, bim[, .(SNP, BP)], by = "SNP")
+
+## Nettoyage
+
+fst_data[, CHR := as.factor(CHR)]
+fst_data[, CHR := as.numeric(as.character(CHR))]
+fst_data <- fst_data[!is.na(CHR)]
+
+## Ordre et position cumulée
+
+fst_data <- fst_data[order(CHR, BP)]
+chrom_cumlen <- fst_data[, .(maxBP = max(BP)), by = CHR]
+chrom_cumlen[, offset := cumsum(shift(maxBP, fill=0))]
+fst_data <- merge(fst_data, chrom_cumlen[, .(CHR, offset)], by = "CHR")
+fst_data[, pos_cum := BP + offset]
+
+## Position des étiquettes
+
+axis_df <- fst_data[, .(center = mean(pos_cum)), by = CHR]
+
+## Plot
+
+ggplot(fst_data, aes(x = pos_cum, y = FST, color = as.factor(CHR))) +
+  geom_point(size = 0.6) +
+  scale_color_manual(values = rep(c("black", "grey60"), length.out=length(unique(fst_data$CHR)))) +
+  scale_x_continuous(label = axis_df$CHR.x, breaks = axis_df$center) +
+  labs(x = "Chromosome", y = "FST", title = "Manhattan plot of FST (Nord vs Sud)") +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)  # <--- texte en diagonale
+  )
+
+
+## Sortir le tableau
+
+unique_chr_table <- axis_df[order(center), .(CHR = CHR)]
+fwrite(unique_chr_table, "liste_chromosomes_ordonnees.tsv", sep = "\t")
+
+
+# Filtrer les données pour ne garder que le chromosome 24713129
+fst_zoom <- fst_data[CHR == 24713129]
+
+# Plot zoomé
+ggplot(fst_zoom, aes(x = BP, y = FST)) +
+  geom_point(size = 0.6, color = "steelblue") +
+  labs(x = "Position (bp)", y = "FST", title = "Zoom sur le chromosome 024713129") +
+  theme_bw() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+
+ggplot(fst_zoom, aes(x = BP, y = FST)) +
+  geom_point(size = 0.6, color = "steelblue") +
+  labs(x = "Position (bp)", y = "FST", title = "Zoom sur le chromosome 024713129") +
+  xlim(18450000, 19650000) +
+  theme_bw() +
+  theme(
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+
+# Filtrage des SNPs entre 18 450 000 et 19 650 000
+snps_extraits <- fst_zoom[fst_zoom$BP >= 18450000 & fst_zoom$BP <= 19650000, ]
+
+# Afficher un aperçu du tableau extrait
+head(snps_extraits)
+
+# Si tu veux l’enregistrer dans un fichier CSV :
+write.csv(snps_extraits, "SNPs_extraits_chr024713129.csv", row.names = FALSE)
+--------------
+# Graphique 
+# install.packages("patchwork")  # à décommenter si besoin
+library(ggplot2)
+library(patchwork)
+
+# Charger la PCA
+pca <- read.table("PCA_024719665.eigenvec", header=FALSE)
+colnames(pca)[1:2] <- c("FID", "IID")
+
+# Charger les latitudes depuis le .fam
+fam <- read.table("Lobster1MB.fam")
+colnames(fam) <- c("FID", "IID", "PID", "MID", "Sex","OK", "Latitude")
+
+# Fusion PCA + latitude
+pca_lat <- merge(pca, fam[, c("FID", "IID", "Latitude")], by=c("FID", "IID"))
+
+# Palette de couleur personnalisée
+color_palette <- c("red", "orange", "yellow", "green", "blue")
+
+# Graphique PC1 vs PC2
+p1 <- ggplot(pca_lat, aes(x=V3, y=V4, color=Latitude)) +
+  geom_point(size=2) +
+  scale_color_gradientn(colors = color_palette) +
+  theme_minimal() +
+  labs(title="PC1 vs PC2", x="PC1", y="PC2", color="Latitude")
+
+# Graphique PC2 vs PC3
+p2 <- ggplot(pca_lat, aes(x=V4, y=V5, color=Latitude)) +
+  geom_point(size=2) +
+  scale_color_gradientn(colors = color_palette) +
+  theme_minimal() +
+  labs(title="PC2 vs PC3", x="PC2", y="PC3", color="Latitude")
+
+# Graphique PC3 vs PC4
+p3 <- ggplot(pca_lat, aes(x=V5, y=V6, color=Latitude)) +
+  geom_point(size=2) +
+  scale_color_gradientn(colors = color_palette) +
+  theme_minimal() +
+  labs(title="PC3 vs PC4", x="PC3", y="PC4", color="Latitude")
+
+# Combiner les graphiques avec un titre général
+final_plot <- (p1 | p2 | p3) + 
+  plot_annotation(title = "Analyse en composantes principales - Chromosome 024719665")
+
+final_plot
+---------
+# Charger les packages nécessaires
+library(data.table)
+library(ggplot2)
+library(patchwork)
+library(uwot)
+library(scales)
+library(viridis)
+
+# Charger le fichier de profondeur de séquençage
+depth <- fread("Lobster1MB.idepth")
+
+# Charger les résultats de la PCA
+pca <- fread("Lobster_filtered_PCA.eigenvec")
+colnames(pca) <- c("FID", "IID", paste0("PC", 1:(ncol(pca)-2)))
+
+# Fusionner les données de profondeur avec la PCA
+pca_all <- merge(pca, depth, by.x = "IID", by.y = "INDV")
+
+# 🔴 Filtrer les individus avec PC2 > -0.4
+pca_all <- pca_all[PC2 > -0.4]
+
+# Charger le fichier .fam pour obtenir la latitude
+fam <- fread("Lobster1MB.fam")
+colnames(fam) <- c("FID", "IID", "Father", "Mother", "Sex", "Phenotype", "Latitude", "Longitude", "NAFO Zone")
+
+# Fusionner la latitude avec les données PCA
+pca_all <- merge(pca_all, fam[, c("IID", "Latitude")], by = "IID")
+
+# Appliquer UMAP sur les 10 premières composantes principales
+umap_res <- umap(pca_all[, paste0("PC", 1:10), with = FALSE], n_neighbors = 15, min_dist = 0.1)
+pca_all$UMAP1 <- umap_res[, 1]
+pca_all$UMAP2 <- umap_res[, 2]
+
+# Palette de couleurs personnalisée pour la latitude
+color_palette <- c("red", "orange", "yellow", "green", "blue")
+
+# Graphiques
+p1 <- ggplot(pca_all, aes(PC1, PC2, color = Latitude)) + 
+  geom_point(alpha = 0.7) + ggtitle("PC1 vs PC2") + theme_minimal() + 
+  scale_color_gradientn(colors = color_palette)
+p2 <- ggplot(pca_all, aes(PC2, PC3, color = Latitude)) + 
+  geom_point(alpha = 0.7) + ggtitle("PC2 vs PC3") + theme_minimal() + 
+  scale_color_gradientn(colors = color_palette)
+p3 <- ggplot(pca_all, aes(PC3, PC4, color = Latitude)) + 
+  geom_point(alpha = 0.7) + ggtitle("PC3 vs PC4") + theme_minimal() + 
+  scale_color_gradientn(colors = color_palette)
+p4 <- ggplot(pca_all, aes(UMAP1, UMAP2, color = Latitude)) + 
+  geom_point(alpha = 0.7) + ggtitle("UMAP1 vs UMAP2 (Latitude)") + theme_minimal() + 
+  scale_color_gradientn(colors = color_palette)
+p5 <- ggplot(pca_all, aes(UMAP1, UMAP2, color = MEAN_DEPTH)) + 
+  geom_point(alpha = 0.7) + ggtitle("UMAP1 vs UMAP2 (Depth)") + theme_minimal() + 
+  scale_color_viridis_c(option = "magma")
+p6 <- ggplot(pca_all, aes(PC1, UMAP2, color = MEAN_DEPTH)) + 
+  geom_point(alpha = 0.7) + ggtitle("PC1 vs UMAP2 (Depth)") + theme_minimal() + 
+  scale_color_viridis_c(option = "magma")
+
+# Affichage
+(p1 | p2 | p3) / (p4 | p5 | p6)
+--------------
+# Charger les packages nécessaires
+library(data.table)
+library(ggplot2)
+library(patchwork)
+library(uwot)
+library(scales)
+library(viridis)
+
+# Charger le fichier de profondeur de séquençage
+depth <- fread("Lobster1MB.idepth")
+
+# Calculer les percentiles pour filtrer les 5% inférieurs et supérieurs
+low_perc <- quantile(depth$MEAN_DEPTH, 0.1)
+high_perc <- quantile(depth$MEAN_DEPTH, 0.1)
+
+# Filtrer les individus entre les 5% inférieurs et supérieurs de profondeur de séquençage
+filtered_depth <- depth[depth$MEAN_DEPTH >= low_perc & depth$MEAN_DEPTH <= high_perc]
+
+# Charger les résultats de la PCA filtrée
+pca <- fread("Lobster_filtered_PCA.eigenvec")
+colnames(pca) <- c("FID", "IID", paste0("PC", 1:(ncol(pca)-2)))
+
+# Fusionner les données de profondeur filtrées avec la PCA
+pca_filtered <- merge(pca, filtered_depth, by.x = "IID", by.y = "INDV")
+
+# 🔴 Filtrer les individus avec PC2 > -0.4
+pca_filtered <- pca_filtered[PC2 > -0.4]
+
+# Charger le fichier .fam pour obtenir la latitude
+fam <- fread("Lobster1MB.fam")
+colnames(fam) <- c("FID", "IID", "Father", "Mother", "Sex", "Phenotype", "Latitude", "Longitude", "NAFO Zone")
+
+# Fusionner la latitude avec les données PCA filtrées
+pca_filtered <- merge(pca_filtered, fam[, c("IID", "Latitude")], by = "IID")
+
+# Appliquer UMAP sur les 10 premières composantes principales
+umap_res <- umap(pca_filtered[, paste0("PC", 1:10), with = FALSE], n_neighbors = 15, min_dist = 0.1)
+pca_filtered$UMAP1 <- umap_res[, 1]
+pca_filtered$UMAP2 <- umap_res[, 2]
+
+# Définir une palette de couleurs personnalisée pour la latitude
+color_palette <- c("red", "orange", "yellow", "green", "blue")
+
+# Créer une échelle continue personnalisée pour la latitude (en discret ordonné)
+p1 <- ggplot(pca_filtered, aes(PC1, PC2, color = Latitude)) + 
+  geom_point(alpha = 0.7) + ggtitle("PC1 vs PC2") + theme_minimal() + 
+  scale_color_gradientn(colors = color_palette)
+p2 <- ggplot(pca_filtered, aes(PC2, PC3, color = Latitude)) + 
+  geom_point(alpha = 0.7) + ggtitle("PC2 vs PC3") + theme_minimal() + 
+  scale_color_gradientn(colors = color_palette)
+p3 <- ggplot(pca_filtered, aes(PC3, PC4, color = Latitude)) + 
+  geom_point(alpha = 0.7) + ggtitle("PC3 vs PC4") + theme_minimal() + 
+  scale_color_gradientn(colors = color_palette)
+p4 <- ggplot(pca_filtered, aes(UMAP1, UMAP2, color = Latitude)) + 
+  geom_point(alpha = 0.7) + ggtitle("UMAP1 vs UMAP2 (Latitude)") + theme_minimal() + 
+  scale_color_gradientn(colors = color_palette)
+
+# Utiliser une palette continue viridis 'magma' pour la profondeur
+p5 <- ggplot(pca_filtered, aes(UMAP1, UMAP2, color = MEAN_DEPTH)) + 
+  geom_point(alpha = 0.7) + ggtitle("UMAP1 vs UMAP2 (Depth)") + theme_minimal() + 
+  scale_color_viridis_c(option = "magma")
+p6 <- ggplot(pca_filtered, aes(PC1, UMAP2, color = MEAN_DEPTH)) + 
+  geom_point(alpha = 0.7) + ggtitle("PC1 vs UMAP2 (Depth)") + theme_minimal() + 
+  scale_color_viridis_c(option = "magma")
+
+# Affichage combiné
+(p1 | p2 | p3) / (p4 | p5 | p6)
+-------------------
+# --- Librairies
+library(data.table)
+library(ggplot2)
+
+# --- Chargement des fichiers
+fst <- fread("lobster_fst.fst", header = TRUE)
+bim <- fread("Lobster1MB.bim", header = FALSE)
+colnames(bim) <- c("CHR", "SNP", "CM", "BP", "A1", "A2")
+
+# --- Fusion pour les positions physiques
+fst_data <- merge(fst, bim[, .(SNP, BP)], by = "SNP")
+
+# --- Nettoyage
+fst_data[, CHR := as.factor(CHR)]
+fst_data[, CHR := as.numeric(as.character(CHR))]
+fst_data <- fst_data[!is.na(CHR)]
+
+# --- Garder les 10 000 SNPs les plus élevés en FST
+top_fst <- fst_data[order(-FST)][1:10000]
+
+# --- Refaire le calcul de position cumulée
+top_fst <- top_fst[order(CHR, BP)]
+chrom_cumlen <- top_fst[, .(maxBP = max(BP)), by = CHR]
+chrom_cumlen[, offset := cumsum(shift(maxBP, fill = 0))]
+top_fst <- merge(top_fst, chrom_cumlen[, .(CHR, offset)], by = "CHR")
+top_fst[, pos_cum := BP + offset]
+
+# --- Calculer les outliers : FST > 99e percentile dans chaque chromosome
+top_fst[, FST_thresh := quantile(FST, 0.99), by = CHR]
+top_fst[, is_outlier := FST > FST_thresh]
+
+# --- Compter les outliers par chromosome
+outlier_count <- top_fst[is_outlier == TRUE, .N, by = CHR]
+
+# --- Barplot des chromosomes avec le plus d'outliers
+ggplot(outlier_count, aes(x = as.factor(CHR), y = N)) +
+  geom_col(fill = "tomato") +
+  labs(
+    title = "Number of FST outliers (10K) per chromosome",
+    x = "Chromosome",
+    y = "Number of outliers"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# --- Exporter la liste des chromosomes présents dans les 50k
+fwrite(axis_df[order(center), .(CHR)], "liste_chromosomes_top50k.tsv", sep = "\t")
+---------------------
+## Charger les librairies
+
+library(data.table)
+library(ggplot2)
+
+## Charger les fichiers
+
+fst <- fread("lobster_fst.fst", header=TRUE)
+bim <- fread("Lobster_no_024712526.bim", header=FALSE)
+colnames(bim) <- c("CHR", "SNP", "CM", "BP", "A1", "A2")
+
+## Merge pour récupérer les positions
+
+fst_data <- merge(fst, bim[, .(SNP, BP)], by = "SNP")
+
+## Nettoyage
+
+fst_data[, CHR := as.factor(CHR)]
+fst_data[, CHR := as.numeric(as.character(CHR))]
+fst_data <- fst_data[!is.na(CHR)]
+
+## Ordre et position cumulée
+
+fst_data <- fst_data[order(CHR, BP)]
+chrom_cumlen <- fst_data[, .(maxBP = max(BP)), by = CHR]
+chrom_cumlen[, offset := cumsum(shift(maxBP, fill=0))]
+fst_data <- merge(fst_data, chrom_cumlen[, .(CHR, offset)], by = "CHR")
+fst_data[, pos_cum := BP + offset]
+
+## Position des étiquettes
+
+axis_df <- fst_data[, .(center = mean(pos_cum)), by = CHR]
+
+## Plot
+
+ggplot(fst_data, aes(x = pos_cum, y = FST, color = as.factor(CHR))) +
+  geom_point(size = 0.6) +
+  scale_color_manual(values = rep(c("black", "grey60"), length.out=length(unique(fst_data$CHR)))) +
+  scale_x_continuous(label = axis_df$CHR.x, breaks = axis_df$center) +
+  labs(x = "Chromosome", y = "FST", title = "Manhattan plot of FST (Nord vs Sud)") +
+  theme_bw() +
+  theme(
+    legend.position = "none",
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)  # <--- texte en diagonale
+  )
+
+
+# Sortir le tableau
+unique_chr_table <- axis_df[order(center), .(CHR = CHR)]
+fwrite(unique_chr_table, "liste_chromosomes_ordonnees.tsv", sep = "\t")
