@@ -1,6 +1,6 @@
 # Extraire les SNPs du chromosome
 awk '$1 == "024713129"' Lobster1MB.bim | cut -f2 > snp_list_024713129.txt
-awk '$1 == "024719604"' Lobster1MB.bim | cut -f2 > snp_list_024719604.txt
+awk '$1 == "024719665"' Lobster1MB.bim | cut -f2 > snp_list_024719665.txt
 awk '$1 == "024731852"' Lobster1MB.bim | cut -f2 > snp_list_024731852.txt
 awk '$1 == "024737097"' Lobster1MB.bim | cut -f2 > snp_list_024737097.txt
 awk '$1 == "024740202"' Lobster1MB.bim | cut -f2 > snp_list_024740202.txt
@@ -15,9 +15,9 @@ awk '$1 == "024744839"' Lobster1MB.bim | cut -f2 > snp_list_024744839.txt
         --allow-extra-chr
         
 ./plink --bfile Lobster1MB \
-        --extract snp_list_024719604.txt \
+        --extract snp_list_024719665.txt \
         --make-bed \
-        --out Lobster_024719604 \
+        --out Lobster_024719665 \
         --allow-extra-chr
         
 ./plink --bfile Lobster1MB \
@@ -56,9 +56,9 @@ awk '$1 == "024744839"' Lobster1MB.bim | cut -f2 > snp_list_024744839.txt
         --out PCA_024713129 \
         --allow-extra-chr
 
-./plink --bfile Lobster_024719604 \
+./plink --bfile Lobster_024719665 \
         --pca \
-        --out PCA_024719604 \
+        --out PCA_024719665 \
         --allow-extra-chr
 
 ./plink --bfile Lobster_024731852 \
@@ -92,7 +92,7 @@ library(ggplot2)
 library(patchwork)
 
 # Charger la PCA
-pca <- read.table("PCA_024713129.eigenvec", header=FALSE)
+pca <- read.table("PCA_024719665.eigenvec", header=FALSE)
 colnames(pca)[1:2] <- c("FID", "IID")
 
 # Charger les latitudes depuis le .fam
@@ -128,6 +128,6 @@ p3 <- ggplot(pca_lat, aes(x=V5, y=V6, color=Latitude)) +
 
 # Combiner les graphiques avec un titre général
 final_plot <- (p1 | p2 | p3) + 
-  plot_annotation(title = "Analyse en composantes principales - Chromosome 024713129")
+  plot_annotation(title = "Analyse en composantes principales - Chromosome 024719665")
 
 final_plot
