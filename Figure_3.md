@@ -10,7 +10,7 @@ df$LATITUDE <- as.numeric(as.character(df$LATITUDE))
 ```
 # Palette de couleurs
 ```
-color_palette <- c("red", "orange", "yellow", "green", "blue")
+color_palette <- c("red", "orange", "yellow", "green", "cyan", "blue")
 ```
 # Variance expliquée (à adapter avec tes vraies valeurs)
 ```
