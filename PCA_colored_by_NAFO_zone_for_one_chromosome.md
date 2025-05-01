@@ -4,10 +4,14 @@
 awk '{ $2 = NR; print }' Lobster1MB.bim > Lobster1MB2.bim
 
 # Filtrage du fichier .bim pour conserver uniquement les SNPs du chromosome NW_024712526.1
-awk '$1 == "NW_024712526.1"' Lobster1MB2.bim > Lobster1MB_NW_024712526.1.bim
+awk '$1 == "024712526"' Lobster1MB.bim | cut -f2 > snps_chrNW_024712526.1.txt
 
 # Extraction et création d'un nouveau fichier .bed pour le chromosome ciblé
-./plink --bfile Lobster1MB --extract Lobster1MB_NW_024712526.1 --make-bed --out Lobster1MB_chrNW_024712526.1 --allow-extra-chr 
+./plink --bfile Lobster1MB \
+  --extract snps_chrNW_024712526.1.txt \
+  --make-bed \
+  --out Lobster1MB_chrNW_024712526.1 \
+  --allow-extra-chr
 
 # Exécution de l'ACP (PCA) pour le chromosome ciblé
 ./plink --bfile Lobster1MB_chrNW_024712526.1 --pca 10 --out ACP_chr_NW_024712526.1 --allow-extra-chr 
